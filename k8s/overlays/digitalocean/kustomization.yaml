@@ -1,0 +1,17 @@
+# DigitalOcean Production Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: voice-agent-do
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+patches:
+  - path: digitalocean-patch.yaml
+
+# Add DigitalOcean-specific labels
+commonLabels:
+  cloud-provider: digitalocean
+  environment: production

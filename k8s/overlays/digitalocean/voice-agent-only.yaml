@@ -1,0 +1,84 @@
+# Voice Agent Only - LiveKit Server deployed via Helm
+# Secrets are defined in k8s/base/secrets.yaml and will be applied separately
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-agent-service
+  namespace: voice-agent-do
+spec:
+  ports:
+  - name: metrics
+    port: 8000
+    targetPort: 8000
+  selector:
+    app: voice-agent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-agent
+  namespace: voice-agent-do
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: voice-agent
+  template:
+    metadata:
+      labels:
+        app: voice-agent
+    spec:
+      containers:
+      - name: voice-agent
+        image: voice-agent:latest
+        imagePullPolicy: Never
+        env:
+        - name: LIVEKIT_URL
+          value: ws://livekit-server:80
+        - name: LIVEKIT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: api-key
+              name: livekit-credentials
+        - name: LIVEKIT_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: api-secret
+              name: livekit-credentials
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: api-key
+              name: openai-credentials
+        - name: ASSEMBLYAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: api-key
+              name: assemblyai-credentials
+        - name: CARTESIA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: api-key
+              name: cartesia-credentials
+        ports:
+        - containerPort: 8000
+          name: metrics
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
