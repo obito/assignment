@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: voice-agent
+  template:
+    metadata:
+      labels:
+        app: voice-agent
+    spec:
+      containers:
+      - name: voice-agent
+        image: voice-agent:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: metrics
+        env:
+        - name: LIVEKIT_URL
+          value: "ws://livekit-server:80"
+        - name: LIVEKIT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: livekit-credentials
+              key: api-key
+        - name: LIVEKIT_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: livekit-credentials
+              key: api-secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-credentials
+              key: api-key
+        - name: ASSEMBLYAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: assemblyai-credentials
+              key: api-key
+        - name: CARTESIA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cartesia-credentials
+              key: api-key
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "4Gi"
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-agent-service
+spec:
+  selector:
+    app: voice-agent
+  ports:
+  - name: metrics
+    port: 8000
+    targetPort: 8000

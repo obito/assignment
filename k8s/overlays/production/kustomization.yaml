@@ -1,0 +1,11 @@
+# Production Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: voice-agent-system
+
+resources:
+  - ../../base
+
+patches:
+  - path: production-patch.yaml

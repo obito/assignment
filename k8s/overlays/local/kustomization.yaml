@@ -1,0 +1,11 @@
+# Local Development Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: voice-agent-local
+
+resources:
+  - ../../base
+
+patches:
+  - path: local-patch.yaml

@@ -1,220 +1,179 @@
-# LiveKit Voice Agent with End-to-End Latency Monitoring
+# 🎙️ LiveKit Voice Agent System
 
-This project implements a LiveKit voice agent with comprehensive end-to-end latency instrumentation and monitoring capabilities using Prometheus and Grafana.
+A production-ready voice AI agent system capable of handling 100+ concurrent PSTN calls with real-time responsiveness, comprehensive monitoring, and enterprise-grade scalability.
 
-## Features
+## 🏗️ System Architecture
 
-- **End-to-End Latency Tracking**: Measures latency from caller speech → STT → LLM → TTS → caller ear
-- **Performance Metrics**: Tracks MOS, jitter, packet loss, response times, and failed call setup rates
-- **Real-time Monitoring**: Prometheus metrics collection with Grafana dashboards
-- **Latency Target**: Designed to achieve <600ms average round-trip across 100 calls
-- **Docker Support**: Complete containerized setup with monitoring stack
+![High-Level Architecture](highlevel.png)
 
-## Architecture
+Our voice agent system provides end-to-end telephony integration with AI-powered conversational capabilities, built on LiveKit's real-time infrastructure.
 
-```
-Caller Speech → STT → LLM → TTS → Caller Ear
-     ↓           ↓     ↓     ↓        ↓
-   Metrics → Prometheus → Grafana Dashboard
-```
+## 📞 Call Flow
 
-## Quick Start
+![Call Flow Diagram](callflow.png)
+
+The system handles complete PSTN call lifecycle from SIP signaling through RTP media transport to AI-powered conversation processing.
+
+## 🛠️ Technology Stack
+
+### **Core Infrastructure**
+- **LiveKit**: Real-time WebRTC SFU and SIP gateway
+- **Kubernetes**: Container orchestration and scaling
+- **Redis**: Session storage and caching
+- **Docker**: Containerization
+
+### **AI & ML Services**
+- **AssemblyAI**: Speech-to-Text with high accuracy
+- **OpenAI GPT-4o-mini**: Large Language Model for conversation
+- **Cartesia**: High-quality Text-to-Speech synthesis
+- **ChromaDB**: Vector database for knowledge retrieval
+
+### **Monitoring & Observability**
+- **Prometheus**: Metrics collection and alerting
+- **Grafana**: Visualization and dashboards
+- **LangFuse**: LLM tracing and analytics
+- **OpenTelemetry**: Distributed tracing
+
+### **Telephony Integration**
+- **Twilio SIP Trunk**: PSTN connectivity
+- **SIP/RTP**: Standard telephony protocols
+- **Load Balancer**: Traffic distribution and SSL termination
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Kubernetes cluster (local or cloud)
+- API keys for: LiveKit, OpenAI, AssemblyAI, Cartesia
+- Twilio SIP trunk configuration
 
 ### 1. Environment Setup
 
-Create a `.env.local` file with your API keys:
-
 ```bash
-LIVEKIT_URL=your_livekit_url
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-OPENAI_API_KEY=your_openai_key
+# Clone the repository
+git clone <repository-url>
+cd livekit-voice-agent
+
+# Copy environment template
+cp env.example .env.local
+
+# Edit with your API keys
+nano .env.local
 ```
 
-### 2. Start the Monitoring Stack
+### 2. Local Development (Docker Compose)
 
 ```bash
-# Start Prometheus, Grafana, and the voice agent
+# Start the complete system
 docker-compose up -d
 
-# Check that all services are running
+# Check service status
 docker-compose ps
+
+# View logs
+docker-compose logs -f voice-agent
 ```
 
-### 3. Access the Dashboards
+**Access Points:**
+- **Grafana Dashboard**: http://localhost:3001 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **LangFuse**: http://localhost:3000
+- **LiveKit Server**: ws://localhost:7880
 
-- **Grafana Dashboard**: http://localhost:3000 (admin/admin)
-- **Prometheus Metrics**: http://localhost:9090
-- **Voice Agent Metrics**: http://localhost:8000/metrics
-
-### 4. Run Latency Tests
+### 3. Production Deployment (Kubernetes)
 
 ```bash
-# Install dependencies
-uv sync
+# Configure secrets (replace placeholders)
+nano k8s/base/secrets.yaml
 
-# Run the latency test
-uv run python test_latency.py
+# Deploy to production
+./k8s/deploy.sh production
+
+# Check deployment status
+kubectl get all -n voice-agent-system
 ```
 
-## Metrics Collected
 
-### Latency Metrics
-- `voice_agent_end_to_end_latency_ms`: Complete pipeline latency
-- `voice_agent_stt_latency_ms`: Speech-to-text processing time
-- `voice_agent_llm_latency_ms`: LLM processing time
-- `voice_agent_tts_latency_ms`: Text-to-speech processing time
+## 🔧 Configuration
 
-### Performance Metrics
-- `voice_agent_response_time_95p_ms`: 95th percentile response time
-- `voice_agent_response_time_avg_ms`: Average response time
-- `voice_agent_latency_target_met`: Calls meeting <600ms target
-- `voice_agent_latency_target_missed`: Calls missing target
+### **Voice Agent Configuration**
 
-### Call Metrics
-- `voice_agent_total_calls`: Total calls processed
-- `voice_agent_failed_call_setup`: Failed call setups
-- `voice_agent_active_calls`: Currently active calls
+The agent supports multiple deployment modes:
 
-### Audio Quality Metrics
-- `voice_agent_mos_score`: Mean Opinion Score
-- `voice_agent_jitter_ms`: Audio jitter
-- `voice_agent_packet_loss_rate`: Packet loss rate
-
-### System Metrics
-- `voice_agent_cpu_usage_percent`: CPU usage
-- `voice_agent_memory_usage_mb`: Memory usage
-
-## Grafana Dashboard
-
-The included dashboard provides:
-
-1. **End-to-End Latency Percentiles**: P50, P95, P99 latency trends
-2. **Component Latency Breakdown**: STT, LLM, TTS latency analysis
-3. **Call Statistics**: Active calls, call rate, success rates
-4. **Target Compliance**: Percentage of calls meeting <600ms target
-5. **Audio Quality**: MOS, jitter, packet loss monitoring
-6. **System Resources**: CPU and memory usage
-
-## Latency Target Verification
-
-The system is designed to achieve:
-- **<600ms average round-trip latency** across 100 calls
-- **95th percentile latency** tracking
-- **Real-time monitoring** of target compliance
-
-### Running the Test
-
-```bash
-# Test with 100 calls
-uv run python test_latency.py
+```yaml
+# Docker Compose
+services:
+  voice-agent:
+    image: voice-agent:latest
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ASSEMBLYAI_API_KEY=${ASSEMBLYAI_API_KEY}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
 ```
 
-Expected output:
-```
-============================================================
-LATENCY TEST RESULTS
-============================================================
-Total Calls: 100
-Successful Calls: 98
-Failed Calls: 2
-Success Rate: 98.0%
-
-LATENCY STATISTICS:
-  Average Latency: 450.25 ms
-  Median Latency:  420.15 ms
-  95th Percentile: 580.30 ms
-  99th Percentile: 620.45 ms
-  Min Latency:     320.10 ms
-  Max Latency:     680.20 ms
-  Std Deviation:   85.30 ms
-
-TARGET COMPLIANCE (<600ms):
-  Calls Meeting Target: 95/100
-  Compliance Rate: 95.0%
-
-✅ SUCCESS: Average latency (450.25ms) is below 600ms target!
-============================================================
+```yaml
+# Kubernetes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-agent
+spec:
+  replicas: 5
+  template:
+    spec:
+      containers:
+      - name: voice-agent
+        image: voice-agent:latest
+        env:
+        - name: LIVEKIT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: livekit-credentials
+              key: api-key
 ```
 
-## Development
+### **Knowledge Base Integration**
 
-### Local Development
-
-```bash
-# Install dependencies
-uv sync
-
-# Run the agent locally
-uv run python agent.py
-
-# Run metrics server (separate terminal)
-uv run python -c "from metrics import metrics; import asyncio; asyncio.run(metrics.start_system_monitoring())"
-```
-
-### Adding Custom Metrics
+The agent includes a built-in knowledge base for domain-specific queries:
 
 ```python
-from metrics import metrics
-
-# Track custom metric
-metrics.custom_counter.inc()
-
-# Record custom latency
-metrics.custom_latency.observe(latency_ms)
+@function_tool()
+async def search_knowledge_base(
+    self, 
+    context: RunContext, 
+    query: str
+) -> dict[str, Any]:
+    """Search the knowledge base for relevant information."""
+    results = self.knowledge_base.search(query)
+    return {"results": results}
 ```
 
-## Monitoring Configuration
+**Sample Knowledge Base:**
+- Refund policies and procedures
+- Product information and features
+- Contact information and support
+- Objection handling scenarios
 
-### Prometheus Configuration
+## 📈 Monitoring & Observability
 
-The Prometheus configuration (`monitoring/prometheus.yml`) scrapes metrics every 5 seconds from the voice agent.
+### **Grafana Dashboards**
 
-### Grafana Configuration
+Pre-configured dashboards for:
+- **System Performance**: CPU, memory, network usage
+- **Audio Quality**: RTT, jitter, packet loss metrics
+- **Call Metrics**: Success rates, duration, volume
+- **AI Performance**: STT/LLM/TTS latency and accuracy
 
-- **Datasource**: Auto-configured Prometheus connection
-- **Dashboards**: Pre-configured voice agent dashboard
-- **Refresh Rate**: 5 seconds for real-time monitoring
+### **LangFuse Tracing**
 
-## Troubleshooting
+Complete LLM observability:
+- **Conversation Flows**: End-to-end trace visualization
+- **Token Usage**: Cost tracking and optimization
+- **Response Quality**: Human feedback integration
+- **Performance Analytics**: Latency breakdowns
 
-### Common Issues
+---
 
-1. **Metrics not appearing**: Check that the voice agent is running and accessible on port 8000
-2. **Grafana connection issues**: Verify Prometheus is running on port 9090
-3. **High latency**: Check system resources and network connectivity
-
-### Logs
-
-```bash
-# View agent logs
-docker-compose logs voice-agent
-
-# View Prometheus logs
-docker-compose logs prometheus
-
-# View Grafana logs
-docker-compose logs grafana
-```
-
-## Performance Optimization
-
-To achieve the <600ms latency target:
-
-1. **STT Optimization**: Use fast STT models, optimize audio preprocessing
-2. **LLM Optimization**: Use efficient models, implement response caching
-3. **TTS Optimization**: Use fast TTS engines, optimize audio generation
-4. **Network Optimization**: Minimize network latency, use CDN for audio delivery
-5. **System Optimization**: Ensure adequate CPU/memory resources
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new metrics
-4. Update documentation
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
+**Built with ❤️ using LiveKit, OpenAI, and modern cloud-native technologies.**

@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-config
+data:
+  livekit.yaml: |
+    port: 7880
+    rtc:
+      udp_port: 7881
+      use_external_ip: false
+      stun_servers:
+        - stun:stun.l.google.com:19302
+    turn:
+      enabled: false
+    redis:
+      address: "redis-service:6379"
+    log_level: "info"
+    keys:
+      YOUR_LIVEKIT_API_KEY: "YOUR_LIVEKIT_API_SECRET"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: livekit-server
+  template:
+    metadata:
+      labels:
+        app: livekit-server
+    spec:
+      containers:
+      - name: livekit-server
+        image: livekit/livekit-server:latest
+        ports:
+        - containerPort: 7880
+          name: http
+        - containerPort: 7881
+          name: rtc-tcp
+        - containerPort: 50000
+          name: rtc-udp-start
+        - containerPort: 60000
+          name: rtc-udp-end
+        volumeMounts:
+        - name: config
+          mountPath: /etc/livekit
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 7880
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 7880
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: livekit-config
+          items:
+          - key: livekit.yaml
+            path: livekit.yaml
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: livekit-server
+spec:
+  selector:
+    app: livekit-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 7880
+  - name: rtc-tcp
+    port: 7881
+    targetPort: 7881
+  - name: rtc-udp-start
+    port: 50000
+    targetPort: 50000
+    protocol: UDP
+  - name: rtc-udp-end
+    port: 60000
+    targetPort: 60000
+    protocol: UDP
